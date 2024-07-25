@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"golang.org/x/net/html"
 )
 
+// Document is
 type Document struct {
 	Title   string
 	Content string
@@ -21,11 +23,29 @@ type Document struct {
 }
 
 var index bleve.Index
+var root string
 
 func main() {
 	var err error
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	defaultPath := filepath.Join(homeDir, "Downloads")
+
+	path := flag.String("path", defaultPath, "Path to the directory")
+
+	refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
+
+	flag.Parse()
+	root = *path
+	fmt.Println("Using path:", *path)
+	fmt.Println("Rebuild the index ? :", *refresh)
+
 	index, err = bleve.Open("index.bleve")
-	if err == bleve.ErrorIndexPathDoesNotExist {
+	if (err == bleve.ErrorIndexPathDoesNotExist) || *refresh {
 		indexMapping := bleve.NewIndexMapping()
 		documentMapping := bleve.NewDocumentMapping()
 
@@ -42,7 +62,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		buildIndex()
+		buildIndex(root)
 	} else if err != nil {
 		log.Fatal(err)
 	}
@@ -55,9 +75,9 @@ func main() {
 	log.Fatal(http.ListenAndServe(":3030", nil))
 }
 
-func buildIndex() {
+func buildIndex(root string) {
 	batch := index.NewBatch()
-	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -134,7 +154,7 @@ func extractText(n *html.Node, sb *strings.Builder) {
 }
 
 func serveFiles(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, r.URL.Path[1:])
+	http.ServeFile(w, r, root) //r.URL.Path[1:])
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {

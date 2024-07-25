@@ -1,2 +1,4 @@
 go-doc-server
 *.exe
+index.bleve/
+hiver
