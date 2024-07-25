@@ -26,6 +26,7 @@ type Document struct {
 var allowedExtensions = []string{".html", ".htm", ".txt", ".md"}
 
 var index bleve.Index
+
 var root string
 
 func main() {
@@ -42,13 +43,11 @@ func main() {
 
 	refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
 
-	// Define a flag for specifying file extensions
 	extensions := flag.String("extensions", "", "Comma-separated list of file extensions to include")
 
 	flag.Parse()
 
 	root = *path
-	// Update allowedExtensions if the extensions flag is provided
 	if *extensions != "" {
 		allowedExtensions = strings.Split(*extensions, ",")
 		for i, ext := range allowedExtensions {
@@ -63,8 +62,22 @@ func main() {
 	fmt.Println("Rebuild the index ? :", *refresh)
 	fmt.Println("Allowed extensions:", allowedExtensions)
 
-	index, err = bleve.Open("index.bleve")
-	if (err == bleve.ErrorIndexPathDoesNotExist) || *refresh {
+	indexPath := "index.bleve"
+	index, err = bleve.Open(indexPath)
+	if *refresh {
+
+		if _, err := os.Stat(indexPath); err == nil {
+
+			err = os.RemoveAll(indexPath)
+			if err != nil {
+				log.Fatalf("Error deleting existing index: %v", err)
+			}
+		} else if !os.IsNotExist(err) {
+			log.Fatalf("Error checking index path: %v", err)
+		}
+
+	}
+	if err == bleve.ErrorIndexPathDoesNotExist {
 		indexMapping := bleve.NewIndexMapping()
 		documentMapping := bleve.NewDocumentMapping()
 
@@ -122,6 +135,7 @@ func buildIndex(root string) {
 
 		if !info.IsDir() && hasAllowedExtension(info.Name(), allowedExtensions) {
 			// if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+			log.Println("okkk...", path)
 			content, err := os.ReadFile(path)
 			if err != nil {
 				return err
@@ -250,7 +264,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
         {{range .Results}}
         <li>
             <h3><a href="/{{.URL}}">{{.Title}}</a></h3>
-            <p>{{.Content | truncate 150}}</p>
+			<p>{{truncate .Content 150}}</p>
         </li>
         {{end}}
     </ul>
