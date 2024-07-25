@@ -264,7 +264,8 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
         {{range .Results}}
         <li>
             <h3><a href="/{{.URL}}">{{.Title}}</a></h3>
-			<p>{{truncate .Content 150}}</p>
+            <p>{{truncate .Content 150}}</p>
+
         </li>
         {{end}}
     </ul>
