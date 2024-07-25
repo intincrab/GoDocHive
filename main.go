@@ -135,7 +135,6 @@ func buildIndex(root string) {
 
 		if !info.IsDir() && hasAllowedExtension(info.Name(), allowedExtensions) {
 			// if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-			log.Println("okkk...", path)
 			content, err := os.ReadFile(path)
 			if err != nil {
 				return err
