@@ -22,6 +22,9 @@ type Document struct {
 	URL     string
 }
 
+// List of allowed file extensions
+var allowedExtensions = []string{".html", ".htm", ".txt", ".md"}
+
 var index bleve.Index
 var root string
 
@@ -39,10 +42,26 @@ func main() {
 
 	refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
 
+	// Define a flag for specifying file extensions
+	extensions := flag.String("extensions", "", "Comma-separated list of file extensions to include")
+
 	flag.Parse()
+
 	root = *path
+	// Update allowedExtensions if the extensions flag is provided
+	if *extensions != "" {
+		allowedExtensions = strings.Split(*extensions, ",")
+		for i, ext := range allowedExtensions {
+			allowedExtensions[i] = strings.TrimSpace(ext)
+			if !strings.HasPrefix(allowedExtensions[i], ".") {
+				allowedExtensions[i] = "." + allowedExtensions[i]
+			}
+		}
+	}
+
 	fmt.Println("Using path:", *path)
 	fmt.Println("Rebuild the index ? :", *refresh)
+	fmt.Println("Allowed extensions:", allowedExtensions)
 
 	index, err = bleve.Open("index.bleve")
 	if (err == bleve.ErrorIndexPathDoesNotExist) || *refresh {
@@ -75,13 +94,34 @@ func main() {
 	log.Fatal(http.ListenAndServe(":3030", nil))
 }
 
+// Helper function to check if a file has an allowed extension
+// func hasAllowedExtension(filename string) bool {
+// 	for _, ext := range allowedExtensions {
+// 		if strings.HasSuffix(filename, ext) {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
+
+func hasAllowedExtension(filename string, extensions []string) bool {
+	for _, ext := range extensions {
+		if strings.HasSuffix(filename, ext) {
+			return true
+		}
+	}
+	return false
+}
+
 func buildIndex(root string) {
 	batch := index.NewBatch()
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+
+		if !info.IsDir() && hasAllowedExtension(info.Name(), allowedExtensions) {
+			// if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
 			content, err := os.ReadFile(path)
 			if err != nil {
 				return err
