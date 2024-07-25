@@ -2,3 +2,4 @@ go-doc-server
 *.exe
 index.bleve/
 hiver
+.DS_Store
