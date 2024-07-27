@@ -31,23 +31,20 @@ var root string
 
 func main() {
 	var err error
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	  
+    // current working directory where the binary is run
+    currentDir, err := os.Getwd()
+    if err != nil {
+        log.Fatalf("Error getting current working directory: %v", err)
+    }
 
-	defaultPath := filepath.Join(homeDir, "Downloads")
+    path := flag.String("path", currentDir, "Path to the directory")
+    refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
+    extensions := flag.String("extensions", "", "Comma-separated list of file extensions to include")
 
-	path := flag.String("path", defaultPath, "Path to the directory")
+    flag.Parse()
 
-	refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
-
-	extensions := flag.String("extensions", "", "Comma-separated list of file extensions to include")
-
-	flag.Parse()
-
-	root = *path
+    root = *path
 	if *extensions != "" {
 		allowedExtensions = strings.Split(*extensions, ",")
 		for i, ext := range allowedExtensions {
@@ -207,7 +204,8 @@ func extractText(n *html.Node, sb *strings.Builder) {
 }
 
 func serveFiles(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, root) //r.URL.Path[1:])
+    filePath := filepath.Join(root, r.URL.Path)
+    http.ServeFile(w, r, filePath)
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {
@@ -226,10 +224,15 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, hit := range searchResult.Hits {
+			relativeURL, err := filepath.Rel(root, hit.Fields["URL"].(string))
+			if err != nil {
+				log.Printf("Error creating relative URL: %v", err)
+				continue
+			}
 			doc := Document{
 				Title:   hit.Fields["Title"].(string),
 				Content: hit.Fields["Content"].(string),
-				URL:     hit.Fields["URL"].(string),
+				URL:     relativeURL,
 			}
 			results = append(results, doc)
 		}

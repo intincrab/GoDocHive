@@ -3,9 +3,9 @@ GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
-
 # Name for the output binary
 BINARY_NAME=hiver
+
 all: build
 
 build:
@@ -23,8 +23,6 @@ run:
 	./$(BINARY_NAME)
 
 .PHONY: build test clean run
-
-
 
 tidy:
 	go fmt ./...
