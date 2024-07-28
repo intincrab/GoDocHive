@@ -3,3 +3,4 @@ go-doc-server
 index.bleve/
 hiver
 .DS_Store
+*.env

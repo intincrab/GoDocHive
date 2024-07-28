@@ -5,11 +5,12 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 # Name for the output binary
 BINARY_NAME=hiver
+MAIN_PATH=./cmd
 
 all: build
 
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	$(GOBUILD) -o $(BINARY_NAME) -v $(MAIN_PATH)
 
 test:
 	$(GOTEST) -v ./...
@@ -19,7 +20,7 @@ clean:
 	rm -f $(BINARY_NAME)
 
 run:
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	$(GOBUILD) -o $(BINARY_NAME) -v $(MAIN_PATH)
 	./$(BINARY_NAME)
 
 .PHONY: build test clean run
