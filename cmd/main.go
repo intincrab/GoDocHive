@@ -31,20 +31,20 @@ var root string
 
 func main() {
 	var err error
-	  
-    // current working directory where the binary is run
-    currentDir, err := os.Getwd()
-    if err != nil {
-        log.Fatalf("Error getting current working directory: %v", err)
-    }
 
-    path := flag.String("path", currentDir, "Path to the directory")
-    refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
-    extensions := flag.String("extensions", "", "Comma-separated list of file extensions to include")
+	// current working directory where the binary is run
+	currentDir, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Error getting current working directory: %v", err)
+	}
 
-    flag.Parse()
+	path := flag.String("path", currentDir, "Path to the directory")
+	refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
+	extensions := flag.String("extensions", "", "Comma-separated list of file extensions to include")
 
-    root = *path
+	flag.Parse()
+
+	root = *path
 	if *extensions != "" {
 		allowedExtensions = strings.Split(*extensions, ",")
 		for i, ext := range allowedExtensions {
@@ -60,9 +60,9 @@ func main() {
 	fmt.Println("Allowed extensions:", allowedExtensions)
 
 	indexPath := "index.bleve"
-	index, err = bleve.Open(indexPath)
 	if *refresh {
 
+		log.Println(err)
 		if _, err := os.Stat(indexPath); err == nil {
 
 			err = os.RemoveAll(indexPath)
@@ -74,7 +74,10 @@ func main() {
 		}
 
 	}
+
+	index, err = bleve.Open(indexPath)
 	if err == bleve.ErrorIndexPathDoesNotExist {
+
 		indexMapping := bleve.NewIndexMapping()
 		documentMapping := bleve.NewDocumentMapping()
 
@@ -204,38 +207,16 @@ func extractText(n *html.Node, sb *strings.Builder) {
 }
 
 func serveFiles(w http.ResponseWriter, r *http.Request) {
-    filePath := filepath.Join(root, r.URL.Path)
-    http.ServeFile(w, r, filePath)
+	filePath := filepath.Join(root, r.URL.Path)
+	http.ServeFile(w, r, filePath)
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	var results []Document
-
-	if query != "" {
-		searchQuery := bleve.NewMatchQuery(query)
-		searchRequest := bleve.NewSearchRequest(searchQuery)
-		searchRequest.Fields = []string{"Title", "Content", "URL"}
-		searchRequest.Highlight = bleve.NewHighlight()
-		searchResult, err := index.Search(searchRequest)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		for _, hit := range searchResult.Hits {
-			relativeURL, err := filepath.Rel(root, hit.Fields["URL"].(string))
-			if err != nil {
-				log.Printf("Error creating relative URL: %v", err)
-				continue
-			}
-			doc := Document{
-				Title:   hit.Fields["Title"].(string),
-				Content: hit.Fields["Content"].(string),
-				URL:     relativeURL,
-			}
-			results = append(results, doc)
-		}
+	results, err := performSearch(query)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	tmpl := template.New("search")
@@ -249,7 +230,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	tmpl, err := tmpl.Parse(`
+	tmpl, err = tmpl.Parse(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -297,4 +278,46 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func handleCLISearch(query string) {
+	results, err := performSearch(query)
+	if err != nil {
+		log.Fatalf("Error performing search: %v", err)
+	}
+
+	for _, result := range results {
+		fmt.Printf("Title: %s\nContent: %s\nURL: %s\n\n", result.Title, result.Content, result.URL)
+	}
+}
+
+func performSearch(query string) ([]Document, error) {
+	var results []Document
+
+	if query != "" {
+		searchQuery := bleve.NewMatchQuery(query)
+		searchRequest := bleve.NewSearchRequest(searchQuery)
+		searchRequest.Fields = []string{"Title", "Content", "URL"}
+		searchRequest.Highlight = bleve.NewHighlight()
+		searchResult, err := index.Search(searchRequest)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, hit := range searchResult.Hits {
+			relativeURL, err := filepath.Rel(root, hit.Fields["URL"].(string))
+			if err != nil {
+				log.Printf("Error creating relative URL: %v", err)
+				continue
+			}
+			doc := Document{
+				Title:   hit.Fields["Title"].(string),
+				Content: hit.Fields["Content"].(string),
+				URL:     relativeURL,
+			}
+			results = append(results, doc)
+		}
+	}
+
+	return results, nil
 }
