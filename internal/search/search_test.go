@@ -30,29 +30,67 @@ func newTestSearcher(t *testing.T) *Searcher {
 func TestSearchMatchesOneDoc(t *testing.T) {
 	s := newTestSearcher(t)
 
-	res, err := s.Search("apple")
+	res, err := s.Search("apple", 1, 10)
 	if err != nil {
 		t.Fatalf("Search: %v", err)
 	}
-	if len(res) != 1 {
-		t.Fatalf("got %d results, want 1", len(res))
+	if len(res.Documents) != 1 {
+		t.Fatalf("got %d results, want 1", len(res.Documents))
 	}
-	if res[0].Title != "Apple" {
-		t.Errorf("title = %q, want %q", res[0].Title, "Apple")
+	if res.Total != 1 {
+		t.Errorf("Total = %d, want 1", res.Total)
 	}
-	if filepath.IsAbs(res[0].URL) {
-		t.Errorf("URL = %q, want a path relative to root", res[0].URL)
+	if res.Documents[0].Title != "Apple" {
+		t.Errorf("title = %q, want %q", res.Documents[0].Title, "Apple")
+	}
+	if filepath.IsAbs(res.Documents[0].URL) {
+		t.Errorf("URL = %q, want a path relative to root", res.Documents[0].URL)
+	}
+}
+
+func TestSearchPaginates(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"a.html", "b.html", "c.html"} {
+		body := `<html><head><title>` + name + `</title></head><body>common term</body></html>`
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	idx, err := index.Open(filepath.Join(dir, "idx.bleve"), dir, index.DefaultExtensions, true)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { idx.Close() })
+	s := &Searcher{Index: idx, Root: dir}
+
+	first, err := s.Search("common", 1, 2)
+	if err != nil {
+		t.Fatalf("Search page 1: %v", err)
+	}
+	if first.Total != 3 {
+		t.Errorf("Total = %d, want 3", first.Total)
+	}
+	if len(first.Documents) != 2 {
+		t.Errorf("page 1 returned %d docs, want 2", len(first.Documents))
+	}
+
+	second, err := s.Search("common", 2, 2)
+	if err != nil {
+		t.Fatalf("Search page 2: %v", err)
+	}
+	if len(second.Documents) != 1 {
+		t.Errorf("page 2 returned %d docs, want 1", len(second.Documents))
 	}
 }
 
 func TestSearchEmptyQueryReturnsNothing(t *testing.T) {
 	s := newTestSearcher(t)
 
-	res, err := s.Search("")
+	res, err := s.Search("", 1, 10)
 	if err != nil {
 		t.Fatalf("Search: %v", err)
 	}
-	if len(res) != 0 {
-		t.Errorf("empty query returned %d results, want 0", len(res))
+	if len(res.Documents) != 0 {
+		t.Errorf("empty query returned %d results, want 0", len(res.Documents))
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"go-doc-server/internal/index"
@@ -60,7 +61,12 @@ func (s *Server) serveStyle(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	results, err := s.searcher.Search(query)
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
+		page = p
+	}
+
+	res, err := s.searcher.Search(query, page, search.DefaultPageSize)
 	if err != nil {
 		slog.Error("search failed", "query", query, "err", err)
 		http.Error(w, "search failed", http.StatusInternalServerError)
@@ -68,11 +74,23 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Query   string
-		Results []index.Document
+		Query    string
+		Results  []index.Document
+		Total    uint64
+		Page     int
+		HasPrev  bool
+		HasNext  bool
+		PrevPage int
+		NextPage int
 	}{
-		Query:   query,
-		Results: results,
+		Query:    query,
+		Results:  res.Documents,
+		Total:    res.Total,
+		Page:     res.Page,
+		HasPrev:  res.Page > 1,
+		HasNext:  uint64(res.Page*res.PageSize) < res.Total,
+		PrevPage: res.Page - 1,
+		NextPage: res.Page + 1,
 	}
 
 	if err := searchTmpl.Execute(w, data); err != nil {

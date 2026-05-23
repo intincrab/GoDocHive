@@ -19,5 +19,12 @@
         </li>
         {{end}}
     </ul>
+    {{if or .HasPrev .HasNext}}
+    <div class="pager">
+        {{if .HasPrev}}<a href="/search?q={{urlquery .Query}}&amp;page={{.PrevPage}}">&laquo; Prev</a>{{end}}
+        <span>Page {{.Page}}</span>
+        {{if .HasNext}}<a href="/search?q={{urlquery .Query}}&amp;page={{.NextPage}}">Next &raquo;</a>{{end}}
+    </div>
+    {{end}}
 </body>
 </html>
