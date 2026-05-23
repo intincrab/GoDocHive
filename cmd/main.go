@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/standard"
@@ -108,8 +109,19 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir(root)))
 	http.HandleFunc("/search", handleSearch)
 
+	// Explicit timeouts so a slow or idle client cannot hold a connection open
+	// indefinitely (Slowloris). ReadHeaderTimeout in particular bounds the
+	// header-read phase; WriteTimeout is generous to allow large doc responses.
+	srv := &http.Server{
+		Addr:              ":3030",
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
 	fmt.Println("Server running at http://localhost:3030")
-	log.Fatal(http.ListenAndServe(":3030", nil))
+	log.Fatal(srv.ListenAndServe())
 }
 
 // Helper function to check if a file has an allowed extension
