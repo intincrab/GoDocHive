@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -67,13 +68,50 @@ func defaultAddr() string {
 	return "127.0.0.1:3030"
 }
 
+// fatal logs a structured error and exits non-zero. Used only for
+// unrecoverable startup failures, never inside request handlers.
+func fatal(msg string, err error) {
+	slog.Error(msg, "err", err)
+	os.Exit(1)
+}
+
+// statusRecorder captures the response status code for request logging.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// logRequests logs one structured event per request with method, path,
+// status and latency.
+func logRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		slog.Info("request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", rec.status,
+			"duration", time.Since(start).String(),
+			"remote", r.RemoteAddr,
+		)
+	})
+}
+
 func main() {
 	var err error
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	// current working directory where the binary is run
 	currentDir, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Error getting current working directory: %v", err)
+		fatal("getting current working directory", err)
 	}
 
 	path := flag.String("path", currentDir, "Path to the directory")
@@ -98,10 +136,12 @@ func main() {
 		}
 	}
 
-	fmt.Println("Using path:", *path)
-	fmt.Println("Index path:", *indexPath)
-	fmt.Println("Rebuild the index ? :", *refresh)
-	fmt.Println("Allowed extensions:", allowedExtensions)
+	slog.Info("starting",
+		"path", *path,
+		"index", *indexPath,
+		"refresh", *refresh,
+		"extensions", allowedExtensions,
+	)
 
 	if *refresh {
 
@@ -110,10 +150,10 @@ func main() {
 
 			err = os.RemoveAll(*indexPath)
 			if err != nil {
-				log.Fatalf("Error deleting existing index: %v", err)
+				fatal("deleting existing index", err)
 			}
 		} else if !os.IsNotExist(err) {
-			log.Fatalf("Error checking index path: %v", err)
+			fatal("checking index path", err)
 		}
 
 	}
@@ -135,11 +175,11 @@ func main() {
 
 		index, err = bleve.New(*indexPath, indexMapping)
 		if err != nil {
-			log.Fatal(err)
+			fatal("creating index", err)
 		}
 		buildIndex(root)
 	} else if err != nil {
-		log.Fatal(err)
+		fatal("opening index", err)
 	}
 	defer index.Close()
 
@@ -148,15 +188,17 @@ func main() {
 	// still follows symlinks, so a symlink inside root pointing outside root
 	// would be served. Keep the served tree free of escaping symlinks (or run
 	// behind a trust boundary) since we serve arbitrary on-disk docs.
-	http.Handle("/", http.FileServer(http.Dir(root)))
-	http.HandleFunc("/search", handleSearch)
-	http.HandleFunc("/_assets/style.css", serveStyle)
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(root)))
+	mux.HandleFunc("/search", handleSearch)
+	mux.HandleFunc("/_assets/style.css", serveStyle)
 
 	// Explicit timeouts so a slow or idle client cannot hold a connection open
 	// indefinitely (Slowloris). ReadHeaderTimeout in particular bounds the
 	// header-read phase; WriteTimeout is generous to allow large doc responses.
 	srv := &http.Server{
 		Addr:              *addr,
+		Handler:           logRequests(mux),
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -167,7 +209,7 @@ func main() {
 	// serve error or an OS signal, then shut down cleanly.
 	serveErr := make(chan error, 1)
 	go func() {
-		fmt.Printf("Server running at http://%s\n", *addr)
+		slog.Info("server listening", "addr", *addr)
 		serveErr <- srv.ListenAndServe()
 	}()
 
@@ -177,15 +219,15 @@ func main() {
 	select {
 	case err := <-serveErr:
 		if err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			fatal("server error", err)
 		}
 	case <-ctx.Done():
 		stop() // restore default signal handling for a second Ctrl+C
-		fmt.Println("\nShutting down...")
+		slog.Info("shutting down")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			log.Printf("graceful shutdown failed: %v", err)
+			slog.Error("graceful shutdown failed", "err", err)
 		}
 	}
 }
@@ -243,12 +285,12 @@ func buildIndex(root string) {
 	})
 
 	if err != nil {
-		log.Fatal(err)
+		fatal("building index", err)
 	}
 
 	err = index.Batch(batch)
 	if err != nil {
-		log.Fatal(err)
+		fatal("indexing batch", err)
 	}
 }
 
@@ -343,7 +385,7 @@ func performSearch(query string) ([]Document, error) {
 		for _, hit := range searchResult.Hits {
 			relativeURL, err := filepath.Rel(root, hit.Fields["URL"].(string))
 			if err != nil {
-				log.Printf("Error creating relative URL: %v", err)
+				slog.Warn("skipping hit: cannot make relative URL", "url", hit.Fields["URL"], "err", err)
 				continue
 			}
 			doc := Document{
