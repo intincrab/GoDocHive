@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Go Doc Server :: Search</title>
+    <link rel="stylesheet" href="/_assets/style.css">
+</head>
+<body>
+    <div class="row">
+        <form action="/search" method="GET">
+            <input type="search" id="search_textbox" name="q" value="{{.Query}}">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+    <ul>
+        {{range .Results}}
+        <li>
+            <h3><a href="/{{.URL}}">{{.Title}}</a></h3>
+            <p>{{truncate .Content 150}}</p>
+        </li>
+        {{end}}
+    </ul>
+</body>
+</html>

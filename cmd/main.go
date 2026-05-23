@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"flag"
 	"fmt"
 	"html/template"
@@ -32,6 +33,22 @@ var allowedExtensions = []string{".html", ".htm", ".txt", ".md"}
 var index bleve.Index
 
 var root string
+
+//go:embed templates/search.html
+var searchHTML string
+
+//go:embed static/style.css
+var styleCSS []byte
+
+// Parsed once at startup rather than per request.
+var searchTmpl = template.Must(template.New("search").Funcs(template.FuncMap{
+	"truncate": func(s string, l int) string {
+		if len(s) > l {
+			return s[:l] + "..."
+		}
+		return s
+	},
+}).Parse(searchHTML))
 
 func main() {
 	var err error
@@ -115,6 +132,7 @@ func main() {
 	// behind a trust boundary) since we serve arbitrary on-disk docs.
 	http.Handle("/", http.FileServer(http.Dir(root)))
 	http.HandleFunc("/search", handleSearch)
+	http.HandleFunc("/_assets/style.css", serveStyle)
 
 	// Explicit timeouts so a slow or idle client cannot hold a connection open
 	// indefinitely (Slowloris). ReadHeaderTimeout in particular bounds the
@@ -253,55 +271,14 @@ func extractText(n *html.Node, sb *strings.Builder) {
 	}
 }
 
+func serveStyle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/css; charset=utf-8")
+	w.Write(styleCSS)
+}
+
 func handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	results, err := performSearch(query)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	tmpl := template.New("search")
-
-	tmpl.Funcs(template.FuncMap{
-		"truncate": func(s string, l int) string {
-			if len(s) > l {
-				return s[:l] + "..."
-			}
-			return s
-		},
-	})
-
-	tmpl, err = tmpl.Parse(`
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Go Doc Server :: Search</title>
-</head>
-<body>
-    <div class="row">
-        <form action="/search" method="GET">
-            <input type="search" id="search_textbox" name="q" value="{{.Query}}">
-            <button type="submit">Search</button>
-        </form>
-    </div>
-    <ul>
-        {{range .Results}}
-        <li>
-            <h3><a href="/{{.URL}}">{{.Title}}</a></h3>
-            <p>{{truncate .Content 150}}</p>
-
-        </li>
-        {{end}}
-    </ul>
-    <style>
-        .row {
-            padding: 1%;
-        }
-    </style>
-</body>
-</html>
-`)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -315,8 +292,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		Results: results,
 	}
 
-	err = tmpl.Execute(w, data)
-	if err != nil {
+	if err := searchTmpl.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
