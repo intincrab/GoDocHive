@@ -5,7 +5,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 # Name for the output binary
 BINARY_NAME=hiver
-MAIN_PATH=./cmd
+MAIN_PATH=./cmd/hiver
 
 all: build
 
