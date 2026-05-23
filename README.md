@@ -24,6 +24,7 @@ powered by Go + [Bleve](https://github.com/blevesearch/bleve) + html/template
 | `-extensions` | Sets allowed file extensions | ".html,.htm,.txt,.md" |
 | `-addr` | Address to listen on (`host:port`) | `127.0.0.1:3030` |
 | `-index` | Path to the Bleve index directory | `index.bleve` |
+| `-watch` | Watch the path and re-index changes live | `true` |
 
 Flags can also be set via environment variables (the flag wins if both are
 given): `ADDR` (or `PORT`, used as `127.0.0.1:$PORT`) and `INDEX_PATH`.

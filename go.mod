@@ -1,9 +1,10 @@
 module go-doc-server
 
-go 1.22.5
+go 1.23
 
 require (
 	github.com/blevesearch/bleve/v2 v2.4.1
+	github.com/fsnotify/fsnotify v1.10.1
 	golang.org/x/net v0.27.0
 )
 

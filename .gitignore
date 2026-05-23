@@ -1,5 +1,6 @@
-go-doc-server
+# Built binaries (anchored to repo root so they don't match cmd/hiver/ source)
+/go-doc-server
+/hiver
 *.exe
 index.bleve/
-hiver
 .DS_Store
