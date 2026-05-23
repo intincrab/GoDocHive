@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # make audit runs: go mod verify, go vet, staticcheck, govulncheck,
+      # and the race-enabled test suite. The ubuntu runner ships gcc, so the
+      # cgo-backed -race detector works here.
+      - name: audit
+        run: make audit
