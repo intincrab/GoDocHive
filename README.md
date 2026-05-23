@@ -19,6 +19,20 @@ it is **not** a hosted, multi-tenant search platform: there is no auth, no clust
 
 ## setting it up on your system
 
+### quick install (one command)
+
+**linux / macOS:**
+```
+curl -fsSL https://raw.githubusercontent.com/intincrab/GoDocHive/main/install.sh | sh
+```
+
+**windows (powershell):**
+```
+irm https://raw.githubusercontent.com/intincrab/GoDocHive/main/install.ps1 | iex
+```
+
+this downloads the latest release binary for your platform and puts `hiver` on your PATH. set `VERSION=v0.2.0` (or `$env:VERSION`) to pin a specific release. prefer to build it yourself? use one of the options below.
+
 ### prerequisites
 
 - [Go](https://go.dev/dl/) 1.23 or newer — only needed if you build from source
