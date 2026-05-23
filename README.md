@@ -4,6 +4,19 @@ a simple document server/search engine for HTML docs.
 
 powered by Go + [Bleve](https://github.com/blevesearch/bleve) + html/template
 
+## where you can use it
+
+GoDocHive is a good fit anywhere you have a folder of documents and want fast full-text search over them without standing up a database or a hosted search service. a few examples:
+
+- **offline documentation** — search downloaded or generated docs (godoc, javadoc, doxygen, sphinx output) on a machine with no internet access.
+- **static sites without a backend** — add a search page to a site built by Hugo, Jekyll, or MkDocs: run GoDocHive behind a reverse proxy and point it at the generated output folder.
+- **internal knowledge bases** — index a folder of exported wiki pages, runbooks, meeting notes, or markdown docs so a team can search them locally.
+- **large document dumps** — explore specs, RFCs, or an exported Confluence/Notion space as plain HTML with ranked search instead of grepping.
+- **personal notes** — point it at a folder of markdown or text notes and search them from the browser.
+- **CI / preview environments** — run it next to freshly generated docs to give reviewers a searchable preview before publishing.
+
+it is **not** a hosted, multi-tenant search platform: there is no auth, no clustering, and the whole corpus lives on one machine. for those needs, reach for Elasticsearch, Meilisearch, or Typesense.
+
 ## setting it up on your system
 
 ### prerequisites
