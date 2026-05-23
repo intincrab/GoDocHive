@@ -14,9 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Use the latest patched Go rather than the exact version in go.mod:
+      # govulncheck (below) also scans the standard library, so an unpatched
+      # toolchain would fail the audit on stdlib CVEs.
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: stable
           cache: true
 
       # make audit runs: go mod verify, go vet, staticcheck, govulncheck,
