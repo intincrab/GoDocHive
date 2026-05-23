@@ -1,0 +1,10 @@
+.git
+.github
+*.exe
+hiver
+go-doc-server
+index.bleve/
+Dockerfile
+.dockerignore
+README.md
+.goreleaser.yaml
