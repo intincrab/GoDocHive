@@ -42,6 +42,10 @@ func main() {
 	path := flag.String("path", currentDir, "Path to the directory")
 	refresh := flag.Bool("refresh", false, "refresh/rebuild the index")
 	extensions := flag.String("extensions", "", "Comma-separated list of file extensions to include")
+	// Bind to loopback by default: this server has no auth and serves arbitrary
+	// on-disk docs, so it must not be reachable off-host unless deliberately
+	// placed behind a reverse proxy. Pass -addr 0.0.0.0:PORT to expose it.
+	addr := flag.String("addr", "127.0.0.1:3030", "address to listen on (host:port)")
 
 	flag.Parse()
 
@@ -113,14 +117,14 @@ func main() {
 	// indefinitely (Slowloris). ReadHeaderTimeout in particular bounds the
 	// header-read phase; WriteTimeout is generous to allow large doc responses.
 	srv := &http.Server{
-		Addr:              ":3030",
+		Addr:              *addr,
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
-	fmt.Println("Server running at http://localhost:3030")
+	fmt.Printf("Server running at http://%s\n", *addr)
 	log.Fatal(srv.ListenAndServe())
 }
 

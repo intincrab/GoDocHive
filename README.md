@@ -22,6 +22,19 @@ powered by Go + [Bleve](https://github.com/blevesearch/bleve) + html/template
 | `-path` | Specifies the directory to index and serve | Current working directory |
 | `-refresh` | Rebuilds the search index | `false` |
 | `-extensions` | Sets allowed file extensions | ".html,.htm,.txt,.md" |
+| `-addr` | Address to listen on (`host:port`) | `127.0.0.1:3030` |
+
+## security & deployment
+
+GoDocHive has **no authentication** and serves arbitrary on-disk files from
+`-path`. By default it binds to `127.0.0.1`, so it is only reachable from the
+local machine.
+
+To expose it on a network, do **not** simply bind to `0.0.0.0` and walk away.
+Put it behind a reverse proxy (nginx, Caddy, Traefik) that terminates TLS and
+handles authentication, then point the proxy at the loopback listener. Only
+serve document trees you trust — there is no sandbox, and symlinks inside the
+served directory are followed.
 
 ## installation
 
