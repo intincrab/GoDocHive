@@ -42,7 +42,7 @@ prefer to build it yourself? use one of the options below.
 
 ### prerequisites
 
-- [Go](https://go.dev/dl/) 1.23 or newer — only needed if you build from source
+- [Go](https://go.dev/dl/) 1.25 or newer — only needed if you build from source
 - git — only needed to clone the repository
 
 ### option a: build from source
