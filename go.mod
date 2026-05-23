@@ -1,4 +1,4 @@
-module go-doc-server
+module github.com/intincrab/GoDocHive
 
 go 1.23.0
 

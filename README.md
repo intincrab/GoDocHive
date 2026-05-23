@@ -31,7 +31,14 @@ curl -fsSL https://raw.githubusercontent.com/intincrab/GoDocHive/main/install.sh
 irm https://raw.githubusercontent.com/intincrab/GoDocHive/main/install.ps1 | iex
 ```
 
-this downloads the latest release binary for your platform and puts `hiver` on your PATH. set `VERSION=v0.2.0` (or `$env:VERSION`) to pin a specific release. prefer to build it yourself? use one of the options below.
+these download the latest release binary for your platform and put `hiver` on your PATH. set `VERSION=v0.2.0` (or `$env:VERSION`) to pin a specific release.
+
+**already have Go?**
+```
+go install github.com/intincrab/GoDocHive/cmd/hiver@latest
+```
+
+prefer to build it yourself? use one of the options below.
 
 ### prerequisites
 

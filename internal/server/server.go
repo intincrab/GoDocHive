@@ -12,7 +12,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"go-doc-server/internal/search"
+	"github.com/intincrab/GoDocHive/internal/search"
 )
 
 //go:embed templates/search.html

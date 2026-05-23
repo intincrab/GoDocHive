@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"go-doc-server/internal/index"
+	"github.com/intincrab/GoDocHive/internal/index"
 )
 
 func newTestSearcher(t *testing.T) *Searcher {

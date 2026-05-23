@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"go-doc-server/internal/index"
-	"go-doc-server/internal/search"
-	"go-doc-server/internal/server"
+	"github.com/intincrab/GoDocHive/internal/index"
+	"github.com/intincrab/GoDocHive/internal/search"
+	"github.com/intincrab/GoDocHive/internal/server"
 )
 
 // envOr returns the environment value for key, or fallback when unset/empty.

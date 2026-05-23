@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"go-doc-server/internal/index"
-	"go-doc-server/internal/search"
+	"github.com/intincrab/GoDocHive/internal/index"
+	"github.com/intincrab/GoDocHive/internal/search"
 )
 
 func newTestHandler(t *testing.T) http.Handler {
