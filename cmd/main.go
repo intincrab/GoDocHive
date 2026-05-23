@@ -100,7 +100,12 @@ func main() {
 	}
 	defer index.Close()
 
-	http.HandleFunc("/", serveFiles)
+	// http.Dir + FileServer rejects ".." and absolute-path escapes that the old
+	// filepath.Join(root, r.URL.Path) pattern did not guard. Caveat: http.Dir
+	// still follows symlinks, so a symlink inside root pointing outside root
+	// would be served. Keep the served tree free of escaping symlinks (or run
+	// behind a trust boundary) since we serve arbitrary on-disk docs.
+	http.Handle("/", http.FileServer(http.Dir(root)))
 	http.HandleFunc("/search", handleSearch)
 
 	fmt.Println("Server running at http://localhost:3030")
@@ -204,11 +209,6 @@ func extractText(n *html.Node, sb *strings.Builder) {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		extractText(c, sb)
 	}
-}
-
-func serveFiles(w http.ResponseWriter, r *http.Request) {
-	filePath := filepath.Join(root, r.URL.Path)
-	http.ServeFile(w, r, filePath)
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {
