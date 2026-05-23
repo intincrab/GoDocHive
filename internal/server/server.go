@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"go-doc-server/internal/index"
 	"go-doc-server/internal/search"
 )
 
@@ -73,9 +72,21 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	results := make([]resultView, 0, len(res.Documents))
+	for _, hit := range res.Documents {
+		results = append(results, resultView{
+			Title: hit.Title,
+			URL:   hit.URL,
+			// Snippet is produced by Bleve's html highlighter (escaped text
+			// with <mark> tags), so it is safe to mark as trusted HTML.
+			Snippet: template.HTML(hit.Snippet), //nolint:gosec // see comment
+			Content: hit.Content,
+		})
+	}
+
 	data := struct {
 		Query    string
-		Results  []index.Document
+		Results  []resultView
 		Total    uint64
 		Page     int
 		HasPrev  bool
@@ -84,7 +95,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		NextPage int
 	}{
 		Query:    query,
-		Results:  res.Documents,
+		Results:  results,
 		Total:    res.Total,
 		Page:     res.Page,
 		HasPrev:  res.Page > 1,
@@ -96,6 +107,15 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	if err := searchTmpl.Execute(w, data); err != nil {
 		slog.Error("rendering search page", "err", err)
 	}
+}
+
+// resultView is the per-hit shape passed to the template. Snippet is trusted
+// HTML from the highlighter; Content is the plain-text fallback.
+type resultView struct {
+	Title   string
+	URL     string
+	Content string
+	Snippet template.HTML
 }
 
 // statusRecorder captures the response status code for request logging.

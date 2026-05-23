@@ -15,7 +15,7 @@
         {{range .Results}}
         <li>
             <h3><a href="/{{.URL}}">{{.Title}}</a></h3>
-            <p>{{truncate .Content 150}}</p>
+            {{if .Snippet}}<p>{{.Snippet}}</p>{{else}}<p>{{truncate .Content 150}}</p>{{end}}
         </li>
         {{end}}
     </ul>

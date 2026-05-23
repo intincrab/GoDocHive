@@ -3,6 +3,7 @@ package search
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go-doc-server/internal/index"
@@ -45,6 +46,9 @@ func TestSearchMatchesOneDoc(t *testing.T) {
 	}
 	if filepath.IsAbs(res.Documents[0].URL) {
 		t.Errorf("URL = %q, want a path relative to root", res.Documents[0].URL)
+	}
+	if !strings.Contains(res.Documents[0].Snippet, "<mark>") {
+		t.Errorf("Snippet = %q, want it to contain a <mark> highlight", res.Documents[0].Snippet)
 	}
 }
 

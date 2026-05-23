@@ -5,10 +5,9 @@ package search
 import (
 	"log/slog"
 	"path/filepath"
+	"strings"
 
 	"github.com/blevesearch/bleve/v2"
-
-	"go-doc-server/internal/index"
 )
 
 // DefaultPageSize is the number of hits returned per page when the caller
@@ -21,10 +20,19 @@ type Searcher struct {
 	Root  string
 }
 
+// Hit is a single search result. Snippet is an HTML fragment with matched
+// terms wrapped in <mark>; it is empty when the match was not in the body.
+type Hit struct {
+	Title   string
+	URL     string
+	Content string
+	Snippet string
+}
+
 // Result is a single page of search hits plus the paging metadata needed to
 // render navigation.
 type Result struct {
-	Documents []index.Document
+	Documents []Hit
 	Total     uint64
 	Page      int
 	PageSize  int
@@ -46,7 +54,9 @@ func (s *Searcher) Search(query string, page, size int) (Result, error) {
 
 	req := bleve.NewSearchRequest(bleve.NewMatchQuery(query))
 	req.Fields = []string{"Title", "Content", "URL"}
-	req.Highlight = bleve.NewHighlight()
+	// The "html" highlighter wraps matched terms in <mark> and HTML-escapes
+	// the surrounding text, so the fragment is safe to render as HTML.
+	req.Highlight = bleve.NewHighlightWithStyle("html")
 	req.Size = size
 	req.From = (page - 1) * size
 
@@ -55,17 +65,22 @@ func (s *Searcher) Search(query string, page, size int) (Result, error) {
 		return Result{}, err
 	}
 
-	documents := make([]index.Document, 0, len(res.Hits))
+	documents := make([]Hit, 0, len(res.Hits))
 	for _, hit := range res.Hits {
 		relativeURL, err := filepath.Rel(s.Root, hit.Fields["URL"].(string))
 		if err != nil {
 			slog.Warn("skipping hit: cannot make relative URL", "url", hit.Fields["URL"], "err", err)
 			continue
 		}
-		documents = append(documents, index.Document{
+		var snippet string
+		if frags := hit.Fragments["Content"]; len(frags) > 0 {
+			snippet = strings.Join(frags, " … ")
+		}
+		documents = append(documents, Hit{
 			Title:   hit.Fields["Title"].(string),
 			Content: hit.Fields["Content"].(string),
 			URL:     relativeURL,
+			Snippet: snippet,
 		})
 	}
 
