@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
@@ -124,8 +127,31 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	fmt.Printf("Server running at http://%s\n", *addr)
-	log.Fatal(srv.ListenAndServe())
+	// Run the listener in the background so main can wait on either a fatal
+	// serve error or an OS signal, then shut down cleanly.
+	serveErr := make(chan error, 1)
+	go func() {
+		fmt.Printf("Server running at http://%s\n", *addr)
+		serveErr <- srv.ListenAndServe()
+	}()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	select {
+	case err := <-serveErr:
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	case <-ctx.Done():
+		stop() // restore default signal handling for a second Ctrl+C
+		fmt.Println("\nShutting down...")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("graceful shutdown failed: %v", err)
+		}
+	}
 }
 
 // Helper function to check if a file has an allowed extension
