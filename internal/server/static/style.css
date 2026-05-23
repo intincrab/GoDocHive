@@ -1,3 +1,154 @@
-.row {
-    padding: 1%;
+:root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #666;
+    --border: #e2e2e2;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --mark: #fff3b0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    line-height: 1.6;
+    color: var(--fg);
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 4rem;
+}
+
+h1 {
+    margin: 0 0 1.25rem;
+    font-size: 1.5rem;
+}
+
+form.search {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+#search_textbox {
+    flex: 1;
+    padding: 0.6rem 0.8rem;
+    font-size: 1rem;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+#search_textbox:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+button {
+    padding: 0.6rem 1.1rem;
+    font-size: 1rem;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--accent-hover);
+}
+
+.meta {
+    margin-bottom: 1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+ul.results {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+ul.results li {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+ul.results h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.05rem;
+}
+
+ul.results a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+ul.results a:hover {
+    text-decoration: underline;
+}
+
+ul.results p {
+    margin: 0;
+    color: #333;
+}
+
+mark {
+    padding: 0 2px;
+    border-radius: 2px;
+    background: var(--mark);
+}
+
+.empty {
+    padding: 1.5rem 0;
+    color: var(--muted);
+}
+
+.pager {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.pager a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.pager a:hover {
+    text-decoration: underline;
+}
+
+.pager span {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0f1115;
+        --fg: #e6e6e6;
+        --muted: #9aa0a6;
+        --border: #2a2d34;
+        --mark: #7a5b00;
+    }
+
+    ul.results p {
+        color: #c9ccd1;
+    }
+
+    mark {
+        color: #ffe9a8;
+    }
 }

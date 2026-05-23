@@ -86,8 +86,9 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Query    string
+		Searched bool
 		Results  []resultView
-		Total    uint64
+		Total    int
 		Page     int
 		HasPrev  bool
 		HasNext  bool
@@ -95,8 +96,9 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		NextPage int
 	}{
 		Query:    query,
+		Searched: query != "",
 		Results:  results,
-		Total:    res.Total,
+		Total:    int(res.Total),
 		Page:     res.Page,
 		HasPrev:  res.Page > 1,
 		HasNext:  uint64(res.Page*res.PageSize) < res.Total,

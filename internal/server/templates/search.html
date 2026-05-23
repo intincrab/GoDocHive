@@ -1,30 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Go Doc Server :: Search</title>
     <link rel="stylesheet" href="/_assets/style.css">
 </head>
 <body>
-    <div class="row">
-        <form action="/search" method="GET">
-            <input type="search" id="search_textbox" name="q" value="{{.Query}}">
+    <main class="container">
+        <h1>Document Search</h1>
+        <form class="search" action="/search" method="GET">
+            <input type="search" id="search_textbox" name="q" value="{{.Query}}" placeholder="Search documents…" autofocus>
             <button type="submit">Search</button>
         </form>
-    </div>
-    <ul>
-        {{range .Results}}
-        <li>
-            <h3><a href="/{{.URL}}">{{.Title}}</a></h3>
-            {{if .Snippet}}<p>{{.Snippet}}</p>{{else}}<p>{{truncate .Content 150}}</p>{{end}}
-        </li>
+
+        {{if .Searched}}
+            {{if .Results}}
+            <p class="meta">{{.Total}} result{{if ne .Total 1}}s{{end}} for &ldquo;{{.Query}}&rdquo;</p>
+            <ul class="results">
+                {{range .Results}}
+                <li>
+                    <h3><a href="/{{.URL}}">{{.Title}}</a></h3>
+                    {{if .Snippet}}<p>{{.Snippet}}</p>{{else}}<p>{{truncate .Content 150}}</p>{{end}}
+                </li>
+                {{end}}
+            </ul>
+            {{if or .HasPrev .HasNext}}
+            <nav class="pager">
+                {{if .HasPrev}}<a href="/search?q={{urlquery .Query}}&amp;page={{.PrevPage}}">&laquo; Prev</a>{{end}}
+                <span>Page {{.Page}}</span>
+                {{if .HasNext}}<a href="/search?q={{urlquery .Query}}&amp;page={{.NextPage}}">Next &raquo;</a>{{end}}
+            </nav>
+            {{end}}
+            {{else}}
+            <p class="empty">No results found for &ldquo;{{.Query}}&rdquo;.</p>
+            {{end}}
         {{end}}
-    </ul>
-    {{if or .HasPrev .HasNext}}
-    <div class="pager">
-        {{if .HasPrev}}<a href="/search?q={{urlquery .Query}}&amp;page={{.PrevPage}}">&laquo; Prev</a>{{end}}
-        <span>Page {{.Page}}</span>
-        {{if .HasNext}}<a href="/search?q={{urlquery .Query}}&amp;page={{.NextPage}}">Next &raquo;</a>{{end}}
-    </div>
-    {{end}}
+    </main>
 </body>
 </html>
