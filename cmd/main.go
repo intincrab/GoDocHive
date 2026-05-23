@@ -50,6 +50,23 @@ var searchTmpl = template.Must(template.New("search").Funcs(template.FuncMap{
 	},
 }).Parse(searchHTML))
 
+// envOr returns the environment value for key, or fallback when unset/empty.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+// defaultAddr resolves the default listen address, honoring PORT when set.
+// An explicit ADDR env var or -addr flag takes precedence over this.
+func defaultAddr() string {
+	if p := os.Getenv("PORT"); p != "" {
+		return "127.0.0.1:" + p
+	}
+	return "127.0.0.1:3030"
+}
+
 func main() {
 	var err error
 
@@ -65,7 +82,8 @@ func main() {
 	// Bind to loopback by default: this server has no auth and serves arbitrary
 	// on-disk docs, so it must not be reachable off-host unless deliberately
 	// placed behind a reverse proxy. Pass -addr 0.0.0.0:PORT to expose it.
-	addr := flag.String("addr", "127.0.0.1:3030", "address to listen on (host:port)")
+	addr := flag.String("addr", envOr("ADDR", defaultAddr()), "address to listen on (host:port)")
+	indexPath := flag.String("index", envOr("INDEX_PATH", "index.bleve"), "path to the bleve index directory")
 
 	flag.Parse()
 
@@ -81,16 +99,16 @@ func main() {
 	}
 
 	fmt.Println("Using path:", *path)
+	fmt.Println("Index path:", *indexPath)
 	fmt.Println("Rebuild the index ? :", *refresh)
 	fmt.Println("Allowed extensions:", allowedExtensions)
 
-	indexPath := "index.bleve"
 	if *refresh {
 
 		log.Println(err)
-		if _, err := os.Stat(indexPath); err == nil {
+		if _, err := os.Stat(*indexPath); err == nil {
 
-			err = os.RemoveAll(indexPath)
+			err = os.RemoveAll(*indexPath)
 			if err != nil {
 				log.Fatalf("Error deleting existing index: %v", err)
 			}
@@ -100,7 +118,7 @@ func main() {
 
 	}
 
-	index, err = bleve.Open(indexPath)
+	index, err = bleve.Open(*indexPath)
 	if err == bleve.ErrorIndexPathDoesNotExist {
 
 		indexMapping := bleve.NewIndexMapping()
@@ -115,7 +133,7 @@ func main() {
 
 		indexMapping.AddDocumentMapping("document", documentMapping)
 
-		index, err = bleve.New("index.bleve", indexMapping)
+		index, err = bleve.New(*indexPath, indexMapping)
 		if err != nil {
 			log.Fatal(err)
 		}
