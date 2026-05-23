@@ -4,9 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"flag"
-	"fmt"
 	"html/template"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -144,8 +142,6 @@ func main() {
 	)
 
 	if *refresh {
-
-		log.Println(err)
 		if _, err := os.Stat(*indexPath); err == nil {
 
 			err = os.RemoveAll(*indexPath)
@@ -231,16 +227,6 @@ func main() {
 		}
 	}
 }
-
-// Helper function to check if a file has an allowed extension
-// func hasAllowedExtension(filename string) bool {
-// 	for _, ext := range allowedExtensions {
-// 		if strings.HasSuffix(filename, ext) {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
 
 func hasAllowedExtension(filename string, extensions []string) bool {
 	for _, ext := range extensions {
@@ -355,17 +341,6 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	if err := searchTmpl.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-}
-
-func handleCLISearch(query string) {
-	results, err := performSearch(query)
-	if err != nil {
-		log.Fatalf("Error performing search: %v", err)
-	}
-
-	for _, result := range results {
-		fmt.Printf("Title: %s\nContent: %s\nURL: %s\n\n", result.Title, result.Content, result.URL)
 	}
 }
 
