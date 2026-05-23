@@ -20,6 +20,13 @@ type Searcher struct {
 	Root  string
 }
 
+// Ready reports whether the underlying index is responsive. It is used by the
+// readiness probe; a non-nil error means the index is not serving queries.
+func (s *Searcher) Ready() error {
+	_, err := s.Index.DocCount()
+	return err
+}
+
 // Hit is a single search result. Snippet is an HTML fragment with matched
 // terms wrapped in <mark>; it is empty when the match was not in the body.
 type Hit struct {

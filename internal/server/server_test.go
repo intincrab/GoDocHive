@@ -54,6 +54,51 @@ func TestHandleSearchEmptyQuery(t *testing.T) {
 	}
 }
 
+func TestHealthz(t *testing.T) {
+	h := newTestHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if rec.Body.String() != "ok" {
+		t.Errorf("body = %q, want %q", rec.Body.String(), "ok")
+	}
+}
+
+func TestReadyz(t *testing.T) {
+	h := newTestHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+}
+
+func TestMetricsEndpoint(t *testing.T) {
+	h := newTestHandler(t)
+	// Drive one request so a metric sample exists.
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/search?q=apple", nil))
+
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "hiver_http_requests_total") {
+		t.Errorf("metrics output missing hiver_http_requests_total")
+	}
+}
+
 func TestServeStyle(t *testing.T) {
 	h := newTestHandler(t)
 	req := httptest.NewRequest(http.MethodGet, "/_assets/style.css", nil)

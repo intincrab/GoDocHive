@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"go-doc-server/internal/search"
 )
 
@@ -49,6 +51,9 @@ func New(root string, searcher *search.Searcher) http.Handler {
 	mux.Handle("/", http.FileServer(http.Dir(root)))
 	mux.HandleFunc("/search", s.handleSearch)
 	mux.HandleFunc("/_assets/style.css", s.serveStyle)
+	mux.HandleFunc("/healthz", s.handleHealthz)
+	mux.HandleFunc("/readyz", s.handleReadyz)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	return logRequests(mux)
 }
@@ -56,6 +61,25 @@ func New(root string, searcher *search.Searcher) http.Handler {
 func (s *Server) serveStyle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	w.Write(styleCSS)
+}
+
+// handleHealthz is a liveness probe: it returns 200 as long as the process is
+// serving requests.
+func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte("ok"))
+}
+
+// handleReadyz is a readiness probe: it returns 200 only when the index is
+// responsive, and 503 otherwise so load balancers stop routing traffic.
+func (s *Server) handleReadyz(w http.ResponseWriter, r *http.Request) {
+	if err := s.searcher.Ready(); err != nil {
+		slog.Warn("readiness check failed", "err", err)
+		http.Error(w, "not ready", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte("ready"))
 }
 
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
@@ -131,19 +155,37 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-// logRequests logs one structured event per request with method, path,
-// status and latency.
+// logRequests records Prometheus metrics for every request and logs one
+// structured event per request (method, path, status, latency), skipping the
+// ops endpoints to avoid flooding the log with health and scrape traffic.
 func logRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		slog.Info("request",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"status", rec.status,
-			"duration", time.Since(start).String(),
-			"remote", r.RemoteAddr,
-		)
+		elapsed := time.Since(start)
+
+		observe(r.Method, rec.status, elapsed.Seconds())
+
+		if !isQuietPath(r.URL.Path) {
+			slog.Info("request",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", rec.status,
+				"duration", elapsed.String(),
+				"remote", r.RemoteAddr,
+			)
+		}
 	})
+}
+
+// isQuietPath reports whether a path is an ops endpoint that should not be
+// logged on every hit.
+func isQuietPath(p string) bool {
+	switch p {
+	case "/healthz", "/readyz", "/metrics":
+		return true
+	default:
+		return false
+	}
 }
