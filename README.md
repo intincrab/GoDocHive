@@ -4,6 +4,21 @@ a simple document server/search engine for HTML docs.
 
 powered by Go + [Bleve](https://github.com/blevesearch/bleve) + html/template
 
+[![ci](https://github.com/intincrab/GoDocHive/actions/workflows/ci.yml/badge.svg)](https://github.com/intincrab/GoDocHive/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/intincrab/GoDocHive)](https://github.com/intincrab/GoDocHive/releases)
+[![go reference](https://pkg.go.dev/badge/github.com/intincrab/GoDocHive.svg)](https://pkg.go.dev/github.com/intincrab/GoDocHive)
+[![go report card](https://goreportcard.com/badge/github.com/intincrab/GoDocHive)](https://goreportcard.com/report/github.com/intincrab/GoDocHive)
+[![license](https://img.shields.io/github/license/intincrab/GoDocHive)](LICENSE)
+
+## demo
+
+type a query and get ranked results with the matched terms highlighted, paged, and refreshed live as files change.
+
+<!-- recommended: add a short screen recording here for the repo page.
+record the /search UI (~10s: type a query, show the highlighted results and the Next-page link),
+save it as docs/demo.gif, then uncomment the line below. tools: a screen recorder + https://gif.ski
+![GoDocHive search demo](docs/demo.gif) -->
+
 ## where you can use it
 
 GoDocHive is a good fit anywhere you have a folder of documents and want fast full-text search over them without standing up a database or a hosted search service. a few examples:

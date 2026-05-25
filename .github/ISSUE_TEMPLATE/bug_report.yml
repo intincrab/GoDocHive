@@ -1,0 +1,47 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what actually happened?
+      placeholder: |
+        I ran `hiver -path ./docs` and searched for "install", but ...
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command / flags
+      description: The exact command and flags you ran.
+      placeholder: hiver -path ./docs -refresh
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag or build you are running (e.g. v0.2.1).
+    validations:
+      required: false
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste any server output (it logs in a structured format).
+      render: shell
+    validations:
+      required: false
